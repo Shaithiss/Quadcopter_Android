@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">QuadSteuerung</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="btnInfo">VerbindungsInfo</string>
+    <string name="txtConnection" />
+    <string name="txtSendWIFI" />
+    <string name="btnSendWIFI">Senden</string>
+    <string name="title_activity_wi_fi">WiFiActivity</string>
+    <string name="WiFiButton">WiFi</string>
+</resources>
