@@ -18,9 +18,9 @@
         android:layout_height="wrap_content"
         android:text="@string/btnInfo"
         android:id="@+id/btnConnectionInfo"
-        android:layout_above="@+id/txtConInfo"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="47dp" />
+        android:layout_marginTop="56dp" />
 
     <EditText
         android:layout_width="wrap_content"
@@ -41,13 +41,4 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="48dp" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/WiFiButton"
-        android:id="@+id/btnWiFi"
-        android:layout_above="@+id/btnConnectionInfo"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="41dp"
-        android:onClick="getWiFiActivity" />
 </RelativeLayout>

@@ -9,4 +9,8 @@
     <string name="btnSendWIFI">Senden</string>
     <string name="title_activity_wi_fi">WiFiActivity</string>
     <string name="WiFiButton">WiFi</string>
+
+    <string name="title_activity_steuerung">Steuerung</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>

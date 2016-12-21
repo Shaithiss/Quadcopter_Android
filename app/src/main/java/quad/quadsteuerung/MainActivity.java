@@ -1,5 +1,6 @@
 package quad.quadsteuerung;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.le.ScanResult;
 import android.content.BroadcastReceiver;
@@ -10,6 +11,8 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -19,14 +22,28 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.channels.Channel;
 import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity {
 
-    Button btnConnetInfo, btnSend, btnWiFi;
-    TextView txtConInfo;
+    Button btnConnetInfo, btnSend;
+    TextView txtConInfo, txtSend;
     WifiManager wifiManager;
+    WifiP2pManager wifiP2pManager;
+    BroadcastReceiver receiver;
+    IntentFilter intentfilter;
+    Channel channel;
+    Socket socket;
+
+    private final IntentFilter intentFilter = new IntentFilter();
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,20 +51,30 @@ public class MainActivity extends ActionBarActivity {
 
         btnConnetInfo = (Button)findViewById(R.id.btnConnectionInfo);
         btnSend = (Button)findViewById(R.id.btnSend);
-        btnWiFi = (Button)findViewById(R.id.btnWiFi);
         txtConInfo = (TextView)findViewById(R.id.txtConInfo);
-
+        txtSend = (TextView)findViewById(R.id.txtSendWIFI);
         wifiManager = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+        wifiP2pManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
+        intentfilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
 
-        btnConnetInfo.setOnClickListener(new View.OnClickListener() {
+        registerReceiver(receiver, intentfilter);
+
+        btnConnetInfo.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
                 try {
                     ConnectivityManager connMgr = (ConnectivityManager)
                             getSystemService(Context.CONNECTIVITY_SERVICE);
                     NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+                    if (wifiManager == null) {
+                        showMsgBox("ERROR", "WIFI not supported");
+                    }
+                    if (!wifiManager.isWifiEnabled()) {
+                        wifiManager.setWifiEnabled(true);
+                    }
                     if (networkInfo != null && networkInfo.isConnected()) {
-                        txtConInfo.setText(networkInfo.toString());
+                        txtConInfo.setText(networkInfo.getDetailedState().toString());
+
                         //TODO: Netzwerkname vergleichen und auf Steuerung wechseln
                     } else {
                         showMsgBox("ERROR", "networkInfo: " + networkInfo.toString());
@@ -62,48 +89,34 @@ public class MainActivity extends ActionBarActivity {
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String host = "ESP8266"
-                    int port = 80
-                Socket socket = new Socket();
-                DataOutputStream stream = null;
+                String textToSend = txtSend.toString();
                 try{
-                    socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
-                    stream = new DataOutputStream(socket.getOutputStream());
-                    stream.writeUTF("AT");
-                } catch (IOExeption e) {
-                    Log.e(e.getMessage());
-                } finally {
-                    if(stream != null) {
-                        try {
-                            stream.close();
-                        } catch (IOExeption e){
-                            e.printStackTrace();
-                        }
-                    }
-                    if (socket != null){
-                        if(socket.isConnected()){
-                            try {
-                                socket.close();
-                            } catch (IOExeption e){
-                                e.printStrackTrace();
-                            }
-                        }
-                    }
+                    //TODO(Raffael):Test das
+                    socket = new Socket("192.168.4.1",80);
+                    OutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+                    int count = textToSend.length();
+                    outputStream.write(textToSend.getBytes(), 0, count);
+                    socket.close();
+                }catch(IOException e){
+                    e.printStackTrace();
                 }
+
+
             }
         });
     }
 
-    public void getWiFiActivity(View v){
-        Intent intent = new Intent(getApplicationContext(), WiFiActivity.class);
-        startActivity(intent);
-    }
+    public void showMsgBox(String titel, String s) {
 
-    private void showMsgBox(String titel, String s) {
-
-        AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+        final AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
         alertDialog.setTitle(titel);
         alertDialog.setMessage(s);
+        alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                alertDialog.cancel();
+            }
+        });
         alertDialog.show();
     }
 
@@ -127,5 +140,19 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        receiver = new QuadBroadcastReceiver(wifiP2pManager, channel, this);
+        registerReceiver(receiver, intentFilter);
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        unregisterReceiver(receiver);
     }
 }
