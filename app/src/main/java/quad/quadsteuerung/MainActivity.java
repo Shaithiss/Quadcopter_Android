@@ -62,7 +62,34 @@ public class MainActivity extends ActionBarActivity {
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                String host = "ESP8266"
+                    int port = 80
+                Socket socket = new Socket();
+                DataOutputStream stream = null;
+                try{
+                    socket.connect((new InetSocketAddress(host, port)), SOCKET_TIMEOUT);
+                    stream = new DataOutputStream(socket.getOutputStream());
+                    stream.writeUTF("AT");
+                } catch (IOExeption e) {
+                    Log.e(e.getMessage());
+                } finally {
+                    if(stream != null) {
+                        try {
+                            stream.close();
+                        } catch (IOExeption e){
+                            e.printStackTrace();
+                        }
+                    }
+                    if (socket != null){
+                        if(socket.isConnected()){
+                            try {
+                                socket.close();
+                            } catch (IOExeption e){
+                                e.printStrackTrace();
+                            }
+                        }
+                    }
+                }
             }
         });
     }
