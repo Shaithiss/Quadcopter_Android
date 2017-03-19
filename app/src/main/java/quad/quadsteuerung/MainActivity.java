@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -53,18 +54,49 @@ public class MainActivity extends ActionBarActivity {
         btnSend = (Button)findViewById(R.id.btnSend);
         txtConInfo = (TextView)findViewById(R.id.txtConInfo);
         txtSend = (TextView)findViewById(R.id.txtSendWIFI);
-        wifiManager = (WifiManager)getSystemService(Context.WIFI_SERVICE);
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         wifiP2pManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
         intentfilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
 
-        registerReceiver(receiver, intentfilter);
+        try {
+            registerReceiver(receiver, intentfilter);
+            String netSSID = "ESP8266";
+            String netPASS = "vJ$e&5O;/%@LEXFs";
+            WifiConfiguration WifiConfig = new WifiConfiguration();
+            WifiConfig.SSID = "\"" + netSSID + "\"";
+
+            WifiConfig.wepKeys[0] = "\"" + netPASS + "\"";
+            WifiConfig.wepTxKeyIndex = 0;
+            WifiConfig.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+            WifiConfig.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.WEP40);
+            wifiManager.addNetwork(WifiConfig);
+
+            List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
+            if (list != null) {
+                for (WifiConfiguration i :
+                        list) {
+                    if (i.SSID != null && i.SSID.equals("\"" + netSSID + "\"")) {
+                        wifiManager.disconnect();
+                        wifiManager.enableNetwork(i.networkId, true);
+                        wifiManager.reconnect();
+                        break;
+                    }
+                }
+            }
+
+        } catch (Exception e){
+            showMsgBox("ERROR", e.toString());
+        }
+
 
         btnConnetInfo.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
                 try {
+
                     ConnectivityManager connMgr = (ConnectivityManager)
                             getSystemService(Context.CONNECTIVITY_SERVICE);
+
                     NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
                     if (wifiManager == null) {
                         showMsgBox("ERROR", "WIFI not supported");
@@ -89,10 +121,9 @@ public class MainActivity extends ActionBarActivity {
         btnSend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String textToSend = txtSend.toString();
+                String textToSend = txtSend.getText().toString();
                 try{
-                    //TODO(Raffael):Test das
-                    socket = new Socket("192.168.4.1",80);
+                    socket = new Socket();
                     OutputStream outputStream = new DataOutputStream(socket.getOutputStream());
                     int count = textToSend.length();
                     outputStream.write(textToSend.getBytes(), 0, count);

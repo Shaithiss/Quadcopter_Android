@@ -6,50 +6,41 @@
     android:paddingBottom="@dimen/activity_vertical_margin" tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/txtConInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/btnConnectionInfo"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:layout_margin="200dp"
         android:text="@string/txtConnection"
-        android:textAlignment="center"
-        android:textSize="30sp"
-        tools:layout_alignTop="@+id/btnConnectionInfo" />
+        android:id="@+id/txtConInfo"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
 
     <Button
-        android:id="@+id/btnConnectionInfo"
-        style="@style/Widget.AppCompat.Button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="56dp"
         android:text="@string/btnInfo"
-        android:textSize="30sp" />
+        android:id="@+id/btnConnectionInfo"
+        android:layout_marginTop="93dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignRight="@+id/txtSendWIFI"
+        android:layout_alignEnd="@+id/txtSendWIFI" />
 
     <EditText
-        android:id="@+id/txtSendWIFI"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/txtSendWIFI"
         android:layout_below="@+id/txtConInfo"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="53dp"
-        android:hint="@string/txtSendWIFIHint"
-        android:singleLine="false"
-        android:text="@string/txtSendWIFI"
-        android:textSize="30sp" />
+        android:hint="Sende Text an WIFI"
+        android:text="@string/txtSendWIFI" />
 
     <Button
-        android:id="@+id/btnSend"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="@string/btnSendWIFI"
+        android:id="@+id/btnSend"
         android:layout_below="@+id/txtSendWIFI"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="48dp"
-        android:elevation="0dp"
-        android:text="@string/btnSendWIFI"
-        android:textSize="30sp" />
+        android:elevation="0dp" />
 
 </RelativeLayout>
