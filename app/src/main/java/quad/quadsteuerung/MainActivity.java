@@ -1,18 +1,14 @@
 package quad.quadsteuerung;
 
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.bluetooth.le.ScanResult;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
-import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -21,16 +17,16 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.Channel;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -42,7 +38,6 @@ public class MainActivity extends ActionBarActivity {
     BroadcastReceiver receiver;
     IntentFilter intentfilter;
     Channel channel;
-    Socket socket;
 
     private final IntentFilter intentFilter = new IntentFilter();
 
@@ -50,14 +45,106 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnConnetInfo = (Button)findViewById(R.id.btnConnectionInfo);
-        btnSend = (Button)findViewById(R.id.btnSend);
-        txtConInfo = (TextView)findViewById(R.id.txtConInfo);
-        txtSend = (TextView)findViewById(R.id.txtSendWIFI);
+        btnConnetInfo = (Button) findViewById(R.id.btnConnectionInfo);
+        btnSend = (Button) findViewById(R.id.btnSend);
+        txtConInfo = (TextView) findViewById(R.id.txtConInfo);
+        txtSend = (TextView) findViewById(R.id.txtSendWIFI);
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        wifiP2pManager = (WifiP2pManager)getSystemService(Context.WIFI_P2P_SERVICE);
+        wifiP2pManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         intentfilter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
 
+        WifiConnect();
+
+        btnConnetInfo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+
+                    ConnectivityManager connMgr = (ConnectivityManager)
+                            getSystemService(Context.CONNECTIVITY_SERVICE);
+
+                    NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+                    if (wifiManager == null) {
+                        showMsgBox("ERROR", "WIFI not supported");
+                    }
+                    if (!wifiManager.isWifiEnabled()) {
+                        wifiManager.setWifiEnabled(true);
+                    }
+                    if (networkInfo != null && networkInfo.isConnected()) {
+                        txtConInfo.setText(networkInfo.getExtraInfo().toString());
+
+                        //TODO: Netzwerkname vergleichen und auf Steuerung wechseln
+                    } else {
+                        showMsgBox("ERROR", "networkInfo: " + networkInfo.toString());
+                    }
+                } catch (Exception e) {
+                    showMsgBox("ERROR", e.toString());
+                }
+
+            }
+        });
+
+        btnSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String textToSend = "%%" + txtSend.getText().toString();
+                WifiTransmission(textToSend);
+            }
+        });
+    }
+    public String recieved;
+    public void WifiTransmission(String s) {
+        final String send = s;
+        new Thread(new Runnable() {
+            String s = send;
+              @Override
+            public void run() {
+                String ip = "192.168.4.1";  //ESP8266
+                //String ip = "127.0.0.1";  //Localhost
+                DataOutputStream outputStream = null;
+                DataInputStream inputStream;
+                Socket socket = null;
+                try {
+                    InetAddress addr = InetAddress.getByName(ip);
+                    socket = new Socket(addr, 80);
+                    outputStream = new DataOutputStream(socket.getOutputStream());
+                    inputStream = new DataInputStream(socket.getInputStream());
+                    outputStream.writeUTF(s);
+                    recieved = inputStream.readUTF();
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
+                    recieved = e.toString();
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                    recieved = e.toString();
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                    recieved = e.toString();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    recieved = e.toString();
+                } finally {
+                    if (socket != null) {
+                        try {
+                            socket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (outputStream != null) {
+                        try {
+                            outputStream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }).start();
+        txtConInfo.setText(recieved);
+    }
+
+    public boolean WifiConnect(){
         try {
             registerReceiver(receiver, intentfilter);
             String netSSID = "ESP8266";
@@ -79,7 +166,7 @@ public class MainActivity extends ActionBarActivity {
                         wifiManager.disconnect();
                         wifiManager.enableNetwork(i.networkId, true);
                         wifiManager.reconnect();
-                        break;
+                        return true;
                     }
                 }
             }
@@ -87,56 +174,8 @@ public class MainActivity extends ActionBarActivity {
         } catch (Exception e){
             showMsgBox("ERROR", e.toString());
         }
-
-
-        btnConnetInfo.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v) {
-                try {
-
-                    ConnectivityManager connMgr = (ConnectivityManager)
-                            getSystemService(Context.CONNECTIVITY_SERVICE);
-
-                    NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-                    if (wifiManager == null) {
-                        showMsgBox("ERROR", "WIFI not supported");
-                    }
-                    if (!wifiManager.isWifiEnabled()) {
-                        wifiManager.setWifiEnabled(true);
-                    }
-                    if (networkInfo != null && networkInfo.isConnected()) {
-                        txtConInfo.setText(networkInfo.getDetailedState().toString());
-
-                        //TODO: Netzwerkname vergleichen und auf Steuerung wechseln
-                    } else {
-                        showMsgBox("ERROR", "networkInfo: " + networkInfo.toString());
-                    }
-                } catch (Exception e) {
-                    showMsgBox("ERROR", e.toString());
-                }
-
-            }
-        });
-
-        btnSend.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String textToSend = txtSend.getText().toString();
-                try{
-                    socket = new Socket();
-                    OutputStream outputStream = new DataOutputStream(socket.getOutputStream());
-                    int count = textToSend.length();
-                    outputStream.write(textToSend.getBytes(), 0, count);
-                    socket.close();
-                }catch(IOException e){
-                    e.printStackTrace();
-                }
-
-
-            }
-        });
+        return false;
     }
-
     public void showMsgBox(String titel, String s) {
 
         final AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
